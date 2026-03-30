@@ -256,7 +256,7 @@ export default function Terminal() {
     const timeUsedSec = TOTAL_TIME - timeLeft;
     const timeUsedStr =
       activeLevel < 2
-        ? "N/A (timer starts at Level 2)"
+        ? "N/A"
         : `${Math.floor(timeUsedSec / 60)}:${(timeUsedSec % 60).toString().padStart(2, "0")} / 1:00`;
 
     const totalTasks = ([1, 2, 3] as Level[]).reduce(
@@ -266,214 +266,298 @@ export default function Terminal() {
 
     const dateStr = sessionDate.current.toLocaleString("de-DE");
 
-    // ── Colours ──────────────────────────────────────────────────────────────
-    const BG = [8, 12, 20] as [number, number, number];
-    const CARD = [13, 18, 32] as [number, number, number];
+    // ── Palette (light background for readability) ────────────────────────────
+    const WHITE  = [255, 255, 255] as [number, number, number];
+    const INK    = [15,  23,  42]  as [number, number, number];   // near-black
+    const SUB    = [100, 116, 139] as [number, number, number];   // slate-500
+    const RULE   = [226, 232, 240] as [number, number, number];   // slate-200
+    const CARD   = [248, 250, 252] as [number, number, number];   // slate-50
     const ACCENT = succeeded
-      ? ([74, 222, 128] as [number, number, number])
-      : ([248, 113, 113] as [number, number, number]);
-    const MUTED = [71, 85, 105] as [number, number, number];
-    const TEXT = [226, 232, 240] as [number, number, number];
+      ? ([22, 163, 74]   as [number, number, number])             // green-600
+      : ([220, 38,  38]  as [number, number, number]);            // red-600
+    const ACCENT_LIGHT = succeeded
+      ? ([220, 252, 231] as [number, number, number])             // green-100
+      : ([254, 226, 226] as [number, number, number]);            // red-100
 
-    const W = 210,
-      H = 297;
+    const W = 210, H = 297;
+    const ML = 18, MR = 18, INNER = W - ML - MR;
 
-    // ── Background ───────────────────────────────────────────────────────────
-    doc.setFillColor(...BG);
+    // ════════════════════════════════════════════════════════════════════════
+    // PAGE 1 — Session results
+    // ════════════════════════════════════════════════════════════════════════
+
+    // Background
+    doc.setFillColor(...WHITE);
     doc.rect(0, 0, W, H, "F");
 
-    // ── Header bar ───────────────────────────────────────────────────────────
-    doc.setFillColor(...CARD);
-    doc.rect(0, 0, W, 28, "F");
-
-    doc.setFont("courier", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...ACCENT);
-    doc.text("RTB PROTOCOL", 14, 11);
-
-    doc.setFont("courier", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(...MUTED);
-    doc.text(`SESSION REPORT  ·  ${dateStr}`, 14, 18);
-
-    doc.setFontSize(8);
-    doc.setTextColor(...MUTED);
-    doc.text(`GROUP-${group}`, W - 14, 11, { align: "right" });
-
-    // ── Status banner ────────────────────────────────────────────────────────
+    // Top accent stripe
     doc.setFillColor(...ACCENT);
-    doc.rect(0, 28, W, 22, "F");
+    doc.rect(0, 0, W, 6, "F");
 
-    doc.setFont("courier", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(
-      succeeded ? 8 : 255,
-      succeeded ? 12 : 255,
-      succeeded ? 20 : 255,
-    );
+    // Header
+    let y = 18;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(...INK);
+    doc.text("RTB PROTOCOL", ML, y);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...SUB);
+    doc.text("SESSION REPORT", ML, y + 7);
+    doc.text(dateStr, W - MR, y + 7, { align: "right" });
+
+    // Divider
+    y += 14;
+    doc.setDrawColor(...RULE);
+    doc.setLineWidth(0.4);
+    doc.line(ML, y, W - MR, y);
+
+    // Status badge
+    y += 10;
+    doc.setFillColor(...ACCENT_LIGHT);
+    doc.roundedRect(ML, y, INNER, 18, 3, 3, "F");
+    doc.setDrawColor(...ACCENT);
+    doc.setLineWidth(0.6);
+    doc.roundedRect(ML, y, INNER, 18, 3, 3, "S");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    doc.setTextColor(...ACCENT);
     doc.text(
       succeeded ? "✓  MISSION SUCCEEDED" : "✗  MISSION FAILED",
-      W / 2,
-      42,
+      W / 2, y + 11.5,
       { align: "center" },
     );
 
-    // ── Summary cards ────────────────────────────────────────────────────────
-    const cardY = 62;
-    const cardH = 28;
-    const cards = [
-      { label: "GROUP", value: `Group ${group}` },
-      { label: "RESULT", value: succeeded ? "Succeeded" : "Failed" },
-      { label: "TASKS COMPLETED", value: `${totalTasks} / 9` },
-      { label: "TIME USED", value: timeUsedStr },
+    // Summary grid (2 × 2)
+    y += 26;
+    const summaryItems = [
+      { label: "Group",           value: `Group ${group}` },
+      { label: "Result",          value: succeeded ? "Succeeded" : "Failed" },
+      { label: "Tasks completed", value: `${totalTasks} / 9` },
+      { label: "Time used",       value: timeUsedStr },
     ];
-
-    cards.forEach((c, i) => {
-      const x = 14 + i * 46;
+    const cellW = (INNER - 6) / 2;
+    const cellH = 20;
+    summaryItems.forEach((item, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const cx = ML + col * (cellW + 6);
+      const cy = y + row * (cellH + 4);
       doc.setFillColor(...CARD);
-      doc.roundedRect(x, cardY, 42, cardH, 2, 2, "F");
-      doc.setFont("courier", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(...MUTED);
-      doc.text(c.label, x + 4, cardY + 8);
-      doc.setFont("courier", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(...TEXT);
-      doc.text(c.value, x + 4, cardY + 19);
+      doc.setDrawColor(...RULE);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(cx, cy, cellW, cellH, 2, 2, "FD");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(...SUB);
+      doc.text(item.label.toUpperCase(), cx + 5, cy + 7);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(...INK);
+      doc.text(item.value, cx + 5, cy + 15);
     });
 
-    // ── Level breakdown ──────────────────────────────────────────────────────
-    let y = 104;
-    doc.setFont("courier", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...MUTED);
-    doc.text("LEVEL BREAKDOWN", 14, y);
+    // Level breakdown
+    y += (cellH + 4) * 2 + 10;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...SUB);
+    doc.text("LEVEL BREAKDOWN", ML, y);
 
-    y += 6;
-    doc.setDrawColor(...ACCENT);
-    doc.setLineWidth(0.3);
-    doc.line(14, y, W - 14, y);
+    y += 3;
+    doc.setDrawColor(...RULE);
+    doc.setLineWidth(0.4);
+    doc.line(ML, y, W - MR, y);
 
     ([1, 2, 3] as Level[]).forEach((l) => {
-      y += 10;
+      y += 7;
       const doneCount = completed[l].filter(Boolean).length;
       const allComplete = doneCount === 3;
+      const levelAccent = allComplete ? ACCENT : ([148, 163, 184] as [number, number, number]);
+      const blockH = 14 + TASKS[group as Group][l].length * 7;
 
       doc.setFillColor(...CARD);
-      doc.roundedRect(14, y - 5, W - 28, 34, 2, 2, "F");
+      doc.setDrawColor(...RULE);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(ML, y, INNER, blockH, 2, 2, "FD");
 
-      // Level label
-      doc.setFont("courier", "bold");
+      // Left accent bar
+      doc.setFillColor(...levelAccent);
+      doc.roundedRect(ML, y, 3, blockH, 1, 1, "F");
+
+      // Level header
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(...INK);
+      doc.text(`Level 0${l}  —  ${LEVEL_META[l].difficulty}`, ML + 8, y + 7);
+
+      doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      doc.setTextColor(...(allComplete ? ACCENT : MUTED));
-      doc.text(
-        `LEVEL 0${l}  —  ${LEVEL_META[l].difficulty.toUpperCase()}`,
-        20,
-        y + 3,
-      );
+      doc.setTextColor(...levelAccent);
+      doc.text(`${doneCount} / 3 tasks`, W - MR, y + 7, { align: "right" });
 
-      // Progress bar track
-      const barX = 20,
-        barY = y + 8,
-        barW = W - 56,
-        barH2 = 3;
-      doc.setFillColor(30, 41, 59);
-      doc.roundedRect(barX, barY, barW, barH2, 1, 1, "F");
-      doc.setFillColor(
-        ...(allComplete
-          ? ACCENT
-          : ([251, 146, 60] as [number, number, number])),
-      );
-      doc.roundedRect(barX, barY, barW * (doneCount / 3), barH2, 1, 1, "F");
-
-      // Count
-      doc.setFont("courier", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(...TEXT);
-      doc.text(`${doneCount} / 3 tasks`, W - 20, y + 3, { align: "right" });
-
-      // Individual tasks
+      // Tasks
       TASKS[group as Group][l].forEach((task, idx) => {
         const done = completed[l][idx];
-        const taskY = y + 16 + idx * 5;
-        doc.setFont("courier", "normal");
-        doc.setFontSize(7);
-        doc.setTextColor(
-          done ? ACCENT[0] : MUTED[0],
-          done ? ACCENT[1] : MUTED[1],
-          done ? ACCENT[2] : MUTED[2],
-        );
-        doc.text(`${done ? "▣" : "▢"}  ${task}`, 22, taskY);
+        const ty = y + 13 + idx * 7;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(done ? ACCENT[0] : SUB[0], done ? ACCENT[1] : SUB[1], done ? ACCENT[2] : SUB[2]);
+        const marker = done ? "✓" : "○";
+        doc.text(`${marker}  ${task}`, ML + 8, ty);
       });
 
-      y += 34;
+      y += blockH + 4;
     });
 
-    // ── Questionnaire section ────────────────────────────────────────────────
-    y += 10;
-    doc.setFont("courier", "bold");
+    // Footer p1
+    doc.setDrawColor(...RULE);
+    doc.setLineWidth(0.4);
+    doc.line(ML, H - 14, W - MR, H - 14);
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    doc.setTextColor(...MUTED);
-    doc.text("POST-SESSION FEEDBACK", 14, y);
+    doc.setTextColor(...SUB);
+    doc.text("RTB Protocol  ·  Confidential Research Document", ML, H - 7);
+    doc.text("Page 1 / 2", W - MR, H - 7, { align: "right" });
 
-    y += 6;
-    doc.setDrawColor(...ACCENT);
+    // ════════════════════════════════════════════════════════════════════════
+    // PAGE 2 — Post-session questionnaire
+    // ════════════════════════════════════════════════════════════════════════
+    doc.addPage();
+
+    // Background + stripe
+    doc.setFillColor(...WHITE);
+    doc.rect(0, 0, W, H, "F");
+    doc.setFillColor(...ACCENT);
+    doc.rect(0, 0, W, 6, "F");
+
+    // Header
+    y = 18;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(...INK);
+    doc.text("POST-SESSION FEEDBACK", ML, y);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...SUB);
+    doc.text(`Group ${group}  ·  ${dateStr}`, ML, y + 7);
+
+    // Research question box
+    y += 16;
+    doc.setFillColor(...CARD);
+    doc.setDrawColor(...RULE);
     doc.setLineWidth(0.3);
-    doc.line(14, y, W - 14, y);
-    y += 8;
+    doc.roundedRect(ML, y, INNER, 18, 2, 2, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...SUB);
+    doc.text("RESEARCH QUESTION", ML + 5, y + 6);
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(9);
+    doc.setTextColor(...INK);
+    const rqLines = doc.splitTextToSize(
+      "To what extent does language barriers in emergency instructions affect the speed and success of evacuation during a simulated crisis?",
+      INNER - 10,
+    );
+    doc.text(rqLines, ML + 5, y + 13);
+
+    // Questions
+    y += 26;
+    doc.setDrawColor(...RULE);
+    doc.setLineWidth(0.4);
+    doc.line(ML, y, W - MR, y);
+    y += 3;
 
     QUESTIONS.forEach((q, i) => {
       const rating = likertAnswers[i];
+      y += 6;
+      const qBlockH = 24;
+
       doc.setFillColor(...CARD);
-      doc.roundedRect(14, y - 4, W - 28, 16, 2, 2, "F");
+      doc.setDrawColor(...RULE);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(ML, y, INNER, qBlockH, 2, 2, "FD");
 
-      doc.setFont("courier", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(...TEXT);
-      const wrapped = doc.splitTextToSize(`${i + 1}. ${q}`, W - 60);
-      doc.text(wrapped, 20, y + 2);
+      // Question number accent dot
+      doc.setFillColor(...ACCENT);
+      doc.circle(ML + 6, y + 7, 3, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(255, 255, 255);
+      doc.text(String(i + 1), ML + 6, y + 9, { align: "center" });
 
-      // Rating boxes
+      // Question text
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+      doc.setTextColor(...INK);
+      const qLines = doc.splitTextToSize(q, INNER - 60);
+      doc.text(qLines, ML + 14, y + 8);
+
+      // Scale buttons
+      const scaleStartX = W - MR - 5 * 9;
       for (let v = 1; v <= 5; v++) {
-        const bx = W - 14 - (5 - v + 1) * 7;
-        doc.setFillColor(
-          rating === v ? ACCENT[0] : 20,
-          rating === v ? ACCENT[1] : 32,
-          rating === v ? ACCENT[2] : 54,
-        );
-        doc.roundedRect(bx, y - 2, 6, 6, 1, 1, "F");
-        doc.setFont("courier", "bold");
-        doc.setFontSize(6);
-        doc.setTextColor(rating === v ? 8 : MUTED[0], rating === v ? 12 : MUTED[1], rating === v ? 20 : MUTED[2]);
-        doc.text(String(v), bx + 3, y + 3, { align: "center" });
+        const bx = scaleStartX + (v - 1) * 9;
+        const by = y + qBlockH / 2 - 4;
+        if (rating === v) {
+          doc.setFillColor(...ACCENT);
+          doc.roundedRect(bx, by, 7.5, 8, 1.5, 1.5, "F");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          doc.setTextColor(255, 255, 255);
+        } else {
+          doc.setFillColor(...WHITE);
+          doc.setDrawColor(...RULE);
+          doc.setLineWidth(0.4);
+          doc.roundedRect(bx, by, 7.5, 8, 1.5, 1.5, "FD");
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(...SUB);
+        }
+        doc.text(String(v), bx + 3.75, by + 6, { align: "center" });
       }
 
-      y += 18;
+      // Scale labels
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(...SUB);
+      doc.text("Not at all", scaleStartX, y + qBlockH - 2);
+      doc.text("Extremely", scaleStartX + 4 * 9 + 7.5, y + qBlockH - 2, { align: "right" });
+
+      y += qBlockH + 3;
     });
 
+    // Comments
     if (openComment.trim()) {
-      y += 2;
+      y += 6;
+      const commentLines = doc.splitTextToSize(openComment.trim(), INNER - 10);
+      const commentH = 10 + commentLines.length * 5.5;
       doc.setFillColor(...CARD);
-      doc.roundedRect(14, y - 4, W - 28, 18, 2, 2, "F");
-      doc.setFont("courier", "bold");
-      doc.setFontSize(7);
-      doc.setTextColor(...MUTED);
-      doc.text("COMMENTS", 20, y + 1);
-      doc.setFont("courier", "normal");
-      doc.setTextColor(...TEXT);
-      const commentLines = doc.splitTextToSize(openComment.trim(), W - 44);
-      doc.text(commentLines, 20, y + 7);
-      y += 20;
+      doc.setDrawColor(...RULE);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(ML, y, INNER, commentH, 2, 2, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...SUB);
+      doc.text("ADDITIONAL COMMENTS", ML + 5, y + 7);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+      doc.setTextColor(...INK);
+      doc.text(commentLines, ML + 5, y + 14);
+      y += commentH;
     }
 
-    // ── Footer ───────────────────────────────────────────────────────────────
-    doc.setFillColor(...CARD);
-    doc.rect(0, H - 14, W, 14, "F");
-    doc.setFont("courier", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(...MUTED);
-    doc.text("RTB Protocol  ·  Confidential Research Document", 14, H - 5);
-    doc.text(`Generated ${dateStr}`, W - 14, H - 5, { align: "right" });
+    // Footer p2
+    doc.setDrawColor(...RULE);
+    doc.setLineWidth(0.4);
+    doc.line(ML, H - 14, W - MR, H - 14);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...SUB);
+    doc.text("RTB Protocol  ·  Confidential Research Document", ML, H - 7);
+    doc.text("Page 2 / 2", W - MR, H - 7, { align: "right" });
 
     doc.save(`RTB_Group${group}_${succeeded ? "SUCCESS" : "FAILED"}.pdf`);
   }
@@ -741,7 +825,7 @@ export default function Terminal() {
   }
 
   // ─── Success screen ─────────────────────────────────────────────────────────
-  if (codeFeedback === "ok") {
+  if (codeFeedback === "ok" && screen !== "questionnaire") {
     return (
       <div
         style={{
@@ -852,7 +936,7 @@ export default function Terminal() {
   }
 
   // ─── Time's up screen ───────────────────────────────────────────────────────
-  if (timeUp) {
+  if (timeUp && screen !== "questionnaire") {
     return (
       <div
         style={{
