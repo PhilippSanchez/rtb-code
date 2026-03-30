@@ -1246,55 +1246,44 @@ export default function Terminal() {
           </div>
         </div>
 
-        {/* Timer — only visible from Level 2 */}
-        <div
-          style={{
-            textAlign: "center",
-            visibility: activeLevel >= 2 ? "visible" : "hidden",
-            flexShrink: 0,
-          }}
-        >
-          <div
-            style={{
-              fontSize: "var(--rtb-fs-timelabel)",
-              color: "#475569",
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              marginBottom: 4,
-            }}
-          >
-            Time remaining
-          </div>
-          <motion.div
-            key={timerStr}
-            initial={{ opacity: 0.6, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            style={{
-              fontSize: "var(--rtb-fs-timer)",
-              fontWeight: 700,
-              color: timerColor,
-              letterSpacing: "0.05em",
-              lineHeight: 1,
-              marginBottom: 8,
-            }}
-          >
-            {timerStr}
-          </motion.div>
-          <div
-            style={{
-              height: 4,
-              background: "#1e293b",
-              borderRadius: 2,
-              overflow: "hidden",
-            }}
-          >
+        {/* Timer — only rendered from Level 2 so it takes no space on L1 */}
+        {activeLevel >= 2 && (
+          <div style={{ textAlign: "center", flexShrink: 0 }}>
+            <div
+              style={{
+                fontSize: "var(--rtb-fs-timelabel)",
+                color: "#475569",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                marginBottom: 2,
+              }}
+            >
+              Time remaining
+            </div>
             <motion.div
-              animate={{ width: `${timerPct * 100}%`, background: timerColor }}
-              transition={{ duration: 0.8, ease: "linear" }}
-              style={{ height: "100%", borderRadius: 2 }}
-            />
+              key={timerStr}
+              initial={{ opacity: 0.6, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={{
+                fontSize: "var(--rtb-fs-timer)",
+                fontWeight: 700,
+                color: timerColor,
+                letterSpacing: "0.05em",
+                lineHeight: 1,
+                marginBottom: 4,
+              }}
+            >
+              {timerStr}
+            </motion.div>
+            <div style={{ height: 3, background: "#1e293b", borderRadius: 2, overflow: "hidden" }}>
+              <motion.div
+                animate={{ width: `${timerPct * 100}%`, background: timerColor }}
+                transition={{ duration: 0.8, ease: "linear" }}
+                style={{ height: "100%", borderRadius: 2 }}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Exit code */}
         <div
@@ -1319,7 +1308,7 @@ export default function Terminal() {
           >
             Exit code
           </span>
-          <div style={{ display: "flex", gap: 20 }}>
+          <div style={{ display: "flex", gap: "clamp(10px, 4vw, 20px)" }}>
             {([1, 2, 3] as Level[]).map((l) => (
               <motion.span
                 key={l}
@@ -1406,7 +1395,7 @@ export default function Terminal() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: 12,
+                marginBottom: "var(--rtb-gap)",
                 flexShrink: 0,
               }}
             >
@@ -1436,7 +1425,7 @@ export default function Terminal() {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 8,
+                gap: "var(--rtb-gap)",
                 flex: 1,
                 minHeight: 0,
               }}
@@ -1455,12 +1444,14 @@ export default function Terminal() {
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 12,
-                      padding: "0 16px",
+                      gap: 10,
+                      padding: "var(--rtb-pad-task)",
                       borderRadius: 8,
                       cursor: "pointer",
                       border: "1px solid",
                       flex: 1,
+                      minHeight: 0,
+                      overflow: "hidden",
                     }}
                   >
                     <motion.span
@@ -1472,9 +1463,12 @@ export default function Terminal() {
                     <span
                       style={{
                         fontSize: "var(--rtb-fs-task)",
-                        lineHeight: 1.5,
+                        lineHeight: 1.4,
                         color: done ? accent : "#ffffff",
                         textDecoration: done ? "line-through" : "none",
+                        overflowWrap: "break-word",
+                        wordBreak: "break-word",
+                        minWidth: 0,
                       }}
                     >
                       {task}

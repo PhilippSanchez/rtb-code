@@ -8,6 +8,7 @@
   --rtb-pad-outer:    1.25rem 1.5rem;
   --rtb-pad-card:     1.25rem 1.5rem;
   --rtb-pad-exit:     14px 24px;
+  --rtb-pad-task:     10px 16px;
   --rtb-gap:          10px;
   --rtb-fs-header:    14px;
   --rtb-fs-timer:     72px;
@@ -25,6 +26,7 @@
     --rtb-pad-outer:    0.75rem 1rem;
     --rtb-pad-card:     0.75rem 1rem;
     --rtb-pad-exit:     10px 16px;
+    --rtb-pad-task:     7px 12px;
     --rtb-gap:          6px;
     --rtb-fs-header:    11px;
     --rtb-fs-timer:     46px;
