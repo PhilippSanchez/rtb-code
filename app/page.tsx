@@ -80,8 +80,16 @@ const TASKS: Record<Group, Record<Level, string[]>> = {
 const TOTAL_TIME = 60;
 const SECRET_CODE = "472";
 
+const QUESTIONS = [
+  "How clearly could you understand the task instructions?",
+  "How confident did you feel executing each instruction correctly?",
+  "How much did unfamiliar or unclear language slow you down?",
+  "How stressful did you find the instructions under time pressure?",
+  "Overall, how much do you feel the language of the instructions affected your performance?",
+];
+
 export default function Terminal() {
-  const [screen, setScreen] = useState<"briefing" | "group-select" | "mission">(
+  const [screen, setScreen] = useState<"briefing" | "group-select" | "mission" | "questionnaire">(
     "briefing",
   );
   const [group, setGroup] = useState<Group | null>(null);
@@ -95,6 +103,9 @@ export default function Terminal() {
   const [timeUp, setTimeUp] = useState(false);
   const [codeInput, setCodeInput] = useState("");
   const [codeFeedback, setCodeFeedback] = useState<"ok" | "err" | null>(null);
+  const [likertAnswers, setLikertAnswers] = useState<Record<number, number | null>>({0:null,1:null,2:null,3:null,4:null});
+  const [openComment, setOpenComment] = useState("");
+  const [succeeded, setSucceeded] = useState<boolean | null>(null);
   const alarmRef = useRef<HTMLAudioElement | null>(null);
   const timerSoundRef = useRef<HTMLAudioElement | null>(null);
   const heartbeatRef = useRef<HTMLAudioElement | null>(null);
@@ -226,6 +237,9 @@ export default function Terminal() {
     setTimeUp(false);
     setCodeInput("");
     setCodeFeedback(null);
+    setLikertAnswers({0:null,1:null,2:null,3:null,4:null});
+    setOpenComment("");
+    setSucceeded(null);
   }
 
   function startMission(g: Group) {
@@ -234,7 +248,8 @@ export default function Terminal() {
     setScreen("mission");
   }
 
-  async function exportPDF(succeeded: boolean) {
+  async function exportPDF(didSucceed: boolean) {
+    const succeeded = didSucceed;
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF({ unit: "mm", format: "a4" });
 
@@ -394,6 +409,63 @@ export default function Terminal() {
       y += 34;
     });
 
+    // ── Questionnaire section ────────────────────────────────────────────────
+    y += 10;
+    doc.setFont("courier", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    doc.text("POST-SESSION FEEDBACK", 14, y);
+
+    y += 6;
+    doc.setDrawColor(...ACCENT);
+    doc.setLineWidth(0.3);
+    doc.line(14, y, W - 14, y);
+    y += 8;
+
+    QUESTIONS.forEach((q, i) => {
+      const rating = likertAnswers[i];
+      doc.setFillColor(...CARD);
+      doc.roundedRect(14, y - 4, W - 28, 16, 2, 2, "F");
+
+      doc.setFont("courier", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(...TEXT);
+      const wrapped = doc.splitTextToSize(`${i + 1}. ${q}`, W - 60);
+      doc.text(wrapped, 20, y + 2);
+
+      // Rating boxes
+      for (let v = 1; v <= 5; v++) {
+        const bx = W - 14 - (5 - v + 1) * 7;
+        doc.setFillColor(
+          rating === v ? ACCENT[0] : 20,
+          rating === v ? ACCENT[1] : 32,
+          rating === v ? ACCENT[2] : 54,
+        );
+        doc.roundedRect(bx, y - 2, 6, 6, 1, 1, "F");
+        doc.setFont("courier", "bold");
+        doc.setFontSize(6);
+        doc.setTextColor(rating === v ? 8 : MUTED[0], rating === v ? 12 : MUTED[1], rating === v ? 20 : MUTED[2]);
+        doc.text(String(v), bx + 3, y + 3, { align: "center" });
+      }
+
+      y += 18;
+    });
+
+    if (openComment.trim()) {
+      y += 2;
+      doc.setFillColor(...CARD);
+      doc.roundedRect(14, y - 4, W - 28, 18, 2, 2, "F");
+      doc.setFont("courier", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(...MUTED);
+      doc.text("COMMENTS", 20, y + 1);
+      doc.setFont("courier", "normal");
+      doc.setTextColor(...TEXT);
+      const commentLines = doc.splitTextToSize(openComment.trim(), W - 44);
+      doc.text(commentLines, 20, y + 7);
+      y += 20;
+    }
+
     // ── Footer ───────────────────────────────────────────────────────────────
     doc.setFillColor(...CARD);
     doc.rect(0, H - 14, W, 14, "F");
@@ -427,6 +499,7 @@ export default function Terminal() {
           justifyContent: "center",
           fontFamily: "monospace",
           overflow: "hidden",
+          padding: "var(--rtb-pad-outer)",
         }}
       >
         <motion.div
@@ -436,7 +509,6 @@ export default function Terminal() {
           style={{
             maxWidth: 420,
             width: "100%",
-            padding: "0 1.5rem",
             textAlign: "center",
           }}
         >
@@ -524,14 +596,15 @@ export default function Terminal() {
           alignItems: "center",
           justifyContent: "center",
           fontFamily: "monospace",
-          overflow: "hidden",
+          overflowY: "auto",
+          padding: "var(--rtb-pad-outer)",
         }}
       >
         <motion.div
           initial={{ opacity: 0, x: 24 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          style={{ maxWidth: 480, width: "100%", padding: "0 1.5rem" }}
+          style={{ maxWidth: 480, width: "100%" }}
         >
           <button
             onClick={() => setScreen("briefing")}
@@ -679,6 +752,7 @@ export default function Terminal() {
           justifyContent: "center",
           fontFamily: "monospace",
           overflow: "hidden",
+          padding: "var(--rtb-pad-outer)",
         }}
       >
         <motion.div
@@ -688,7 +762,6 @@ export default function Terminal() {
           style={{
             maxWidth: 420,
             width: "100%",
-            padding: "0 1.5rem",
             textAlign: "center",
           }}
         >
@@ -752,48 +825,26 @@ export default function Terminal() {
               </span>{" "}
               — mission complete.
             </p>
-            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => exportPDF(true)}
-                style={{
-                  padding: "12px 32px",
-                  background: "#4ade80",
-                  color: "#080c14",
-                  border: "none",
-                  borderRadius: 4,
-                  fontFamily: "monospace",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                }}
-              >
-                ↓ Export PDF
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={reset}
-                style={{
-                  padding: "12px 32px",
-                  background: "transparent",
-                  color: "#4ade80",
-                  border: "1px solid #4ade80",
-                  borderRadius: 4,
-                  fontFamily: "monospace",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  letterSpacing: "0.15em",
-                  textTransform: "uppercase",
-                }}
-              >
-                ↺ New session
-              </motion.button>
-            </div>
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => { setSucceeded(true); setScreen("questionnaire"); }}
+              style={{
+                padding: "12px 40px",
+                background: "#4ade80",
+                color: "#080c14",
+                border: "none",
+                borderRadius: 4,
+                fontFamily: "monospace",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+              }}
+            >
+              Continue to Feedback →
+            </motion.button>
           </motion.div>
         </motion.div>
       </div>
@@ -812,6 +863,7 @@ export default function Terminal() {
           justifyContent: "center",
           fontFamily: "monospace",
           overflow: "hidden",
+          padding: "var(--rtb-pad-outer)",
         }}
       >
         <motion.div
@@ -821,7 +873,7 @@ export default function Terminal() {
           style={{
             maxWidth: 380,
             width: "100%",
-            padding: "2.5rem",
+            padding: "var(--rtb-pad-card)",
             border: "1px solid #f87171",
             borderRadius: 8,
             textAlign: "center",
@@ -830,7 +882,7 @@ export default function Terminal() {
         >
           <div
             style={{
-              fontSize: 11,
+              fontSize: "var(--rtb-fs-header)",
               letterSpacing: "0.2em",
               color: "#f87171",
               textTransform: "uppercase",
@@ -841,7 +893,7 @@ export default function Terminal() {
           </div>
           <div
             style={{
-              fontSize: 52,
+              fontSize: "var(--rtb-fs-timer)",
               fontWeight: 700,
               color: "#f87171",
               marginBottom: 8,
@@ -850,51 +902,178 @@ export default function Terminal() {
           >
             0:00
           </div>
-          <div style={{ fontSize: 14, color: "#94a3b8", marginBottom: 24 }}>
+          <div style={{ fontSize: "var(--rtb-fs-tab)", color: "#94a3b8", marginBottom: 24 }}>
             Levels cleared:{" "}
             <span style={{ color: "#e2e8f0" }}>
               {([1, 2, 3] as Level[]).filter(levelDone).length} / 3
             </span>
           </div>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-            <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => exportPDF(false)}
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => { setSucceeded(false); setScreen("questionnaire"); }}
+            style={{
+              padding: "10px 32px",
+              background: "#f87171",
+              border: "none",
+              borderRadius: 4,
+              fontFamily: "monospace",
+              color: "#080c14",
+              cursor: "pointer",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            Continue to Feedback →
+          </motion.button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ─── Questionnaire screen ───────────────────────────────────────────────────
+  if (screen === "questionnaire") {
+    const allAnswered = QUESTIONS.every((_, i) => likertAnswers[i] !== null);
+    const accentQ = succeeded ? "#4ade80" : "#f87171";
+    return (
+      <div
+        style={{
+          height: "100dvh",
+          background: "#080c14",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          fontFamily: "monospace",
+          overflowY: "auto",
+          padding: "var(--rtb-pad-outer)",
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          style={{
+            maxWidth: 540,
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--rtb-gap)",
+            margin: "auto 0",
+            paddingTop: 8,
+            paddingBottom: 8,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: "var(--rtb-fs-header)", letterSpacing: "0.25em", color: accentQ, textTransform: "uppercase", marginBottom: 6 }}>
+              Post-Session Feedback
+            </div>
+            <h2 style={{ fontSize: "var(--rtb-fs-tab)", fontWeight: 700, color: "#e2e8f0", margin: 0 }}>
+              How did it go?
+            </h2>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--rtb-gap)" }}>
+            {QUESTIONS.map((q, i) => (
+              <div key={i} style={{ background: "#0d1220", border: "1px solid #1e293b", borderRadius: 6, padding: "10px 14px" }}>
+                <div style={{ fontSize: "var(--rtb-fs-task)", color: "#e2e8f0", marginBottom: 8, lineHeight: 1.5 }}>
+                  <span style={{ color: accentQ, marginRight: 6 }}>{i + 1}.</span>{q}
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[1, 2, 3, 4, 5].map((v) => (
+                    <motion.button
+                      key={v}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setLikertAnswers((prev) => ({ ...prev, [i]: v }))}
+                      style={{
+                        flex: 1,
+                        padding: "6px 0",
+                        background: likertAnswers[i] === v ? accentQ : "transparent",
+                        border: `1px solid ${likertAnswers[i] === v ? accentQ : "#1e293b"}`,
+                        borderRadius: 4,
+                        color: likertAnswers[i] === v ? "#080c14" : "#64748b",
+                        fontFamily: "monospace",
+                        fontSize: "var(--rtb-fs-label)",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {v}
+                    </motion.button>
+                  ))}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                  <span style={{ fontSize: "var(--rtb-fs-label)", color: "#334155" }}>Not at all</span>
+                  <span style={{ fontSize: "var(--rtb-fs-label)", color: "#334155" }}>Extremely</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: "#0d1220", border: "1px solid #1e293b", borderRadius: 6, padding: "10px 14px" }}>
+            <div style={{ fontSize: "var(--rtb-fs-label)", color: "#94a3b8", marginBottom: 6 }}>Additional comments (optional)</div>
+            <textarea
+              value={openComment}
+              onChange={(e) => setOpenComment(e.target.value)}
+              placeholder="Any thoughts…"
+              rows={2}
               style={{
-                padding: "10px 24px",
-                background: "#f87171",
+                width: "100%",
+                background: "transparent",
+                border: "1px solid #1e293b",
+                borderRadius: 4,
+                color: "#e2e8f0",
+                fontFamily: "monospace",
+                fontSize: "var(--rtb-fs-label)",
+                padding: "8px 10px",
+                resize: "none",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <motion.button
+              whileHover={allAnswered ? { scale: 1.03 } : {}}
+              whileTap={allAnswered ? { scale: 0.97 } : {}}
+              onClick={() => allAnswered && exportPDF(succeeded ?? false)}
+              style={{
+                flex: 1,
+                padding: "12px 0",
+                background: allAnswered ? accentQ : "#1e293b",
+                color: allAnswered ? "#080c14" : "#334155",
                 border: "none",
                 borderRadius: 4,
                 fontFamily: "monospace",
-                color: "#080c14",
-                cursor: "pointer",
+                fontSize: "var(--rtb-fs-tab)",
+                fontWeight: 700,
+                cursor: allAnswered ? "pointer" : "not-allowed",
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
-                fontSize: 13,
-                fontWeight: 700,
               }}
             >
               ↓ Export PDF
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.04 }}
+              whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={reset}
               style={{
-                padding: "10px 24px",
+                padding: "12px 20px",
                 background: "transparent",
-                border: "1px solid #f87171",
+                color: "#475569",
+                border: "1px solid #1e293b",
                 borderRadius: 4,
                 fontFamily: "monospace",
-                color: "#f87171",
+                fontSize: "var(--rtb-fs-tab)",
                 cursor: "pointer",
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
-                fontSize: 13,
               }}
             >
-              Retry
+              ↺ New session
             </motion.button>
           </div>
         </motion.div>
@@ -1102,7 +1281,7 @@ export default function Terminal() {
               }}
               style={{
                 flex: 1,
-                padding: "12px 0",
+                padding: "var(--rtb-pad-exit)",
                 cursor: "pointer",
                 border: "1px solid",
                 borderRadius: 8,
