@@ -909,7 +909,7 @@ export default function Terminal() {
         height: "100dvh",
         background: "#080c14",
         fontFamily: "monospace",
-        padding: "1.25rem 1.5rem",
+        padding: "var(--rtb-pad-outer)",
         position: "relative",
         overflow: "hidden",
         display: "flex",
@@ -942,7 +942,7 @@ export default function Terminal() {
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          gap: 10,
+          gap: "var(--rtb-gap)",
           minHeight: 0,
         }}
       >
@@ -957,7 +957,7 @@ export default function Terminal() {
         >
           <span
             style={{
-              fontSize: 14,
+              fontSize: "var(--rtb-fs-header)",
               letterSpacing: "0.2em",
               color: "#38bdf8",
               textTransform: "uppercase",
@@ -968,7 +968,7 @@ export default function Terminal() {
           <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
             <span
               style={{
-                fontSize: 14,
+                fontSize: "var(--rtb-fs-header)",
                 color: "#38bdf844",
                 letterSpacing: "0.1em",
               }}
@@ -976,7 +976,7 @@ export default function Terminal() {
               GRP-{group}
             </span>
             <span
-              style={{ fontSize: 14, color: "#475569", letterSpacing: "0.1em" }}
+              style={{ fontSize: "var(--rtb-fs-header)", color: "#475569", letterSpacing: "0.1em" }}
             >
               {([1, 2, 3] as Level[]).filter(levelDone).length}/3 cleared
             </span>
@@ -993,7 +993,7 @@ export default function Terminal() {
         >
           <div
             style={{
-              fontSize: 12,
+              fontSize: "var(--rtb-fs-timelabel)",
               color: "#475569",
               letterSpacing: "0.2em",
               textTransform: "uppercase",
@@ -1007,7 +1007,7 @@ export default function Terminal() {
             initial={{ opacity: 0.6, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             style={{
-              fontSize: 72,
+              fontSize: "var(--rtb-fs-timer)",
               fontWeight: 700,
               color: timerColor,
               letterSpacing: "0.05em",
@@ -1039,7 +1039,7 @@ export default function Terminal() {
             background: "#0d1220",
             border: "1px solid #1e293b",
             borderRadius: 10,
-            padding: "14px 24px",
+            padding: "var(--rtb-pad-exit)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1048,7 +1048,7 @@ export default function Terminal() {
         >
           <span
             style={{
-              fontSize: 13,
+              fontSize: "var(--rtb-fs-label)",
               color: "#475569",
               letterSpacing: "0.2em",
               textTransform: "uppercase",
@@ -1065,7 +1065,7 @@ export default function Terminal() {
                 }}
                 transition={{ duration: 0.4 }}
                 style={{
-                  fontSize: 36,
+                  fontSize: "var(--rtb-fs-digit)",
                   fontWeight: 700,
                   letterSpacing: "0.1em",
                   minWidth: 28,
@@ -1109,7 +1109,7 @@ export default function Terminal() {
                 background: activeLevel === n ? "#0d1220" : "transparent",
                 fontFamily: "monospace",
                 fontWeight: 600,
-                fontSize: 16,
+                fontSize: "var(--rtb-fs-tab)",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
               }}
@@ -1131,7 +1131,7 @@ export default function Terminal() {
               background: "#0d1220",
               border: "1px solid #1e293b",
               borderRadius: 10,
-              padding: "1.25rem 1.5rem",
+              padding: "var(--rtb-pad-card)",
               flex: 1,
               minHeight: 0,
               display: "flex",
@@ -1149,7 +1149,7 @@ export default function Terminal() {
             >
               <span
                 style={{
-                  fontSize: 13,
+                  fontSize: "var(--rtb-fs-label)",
                   color: "#475569",
                   letterSpacing: "0.2em",
                   textTransform: "uppercase",
@@ -1159,7 +1159,7 @@ export default function Terminal() {
               </span>
               <span
                 style={{
-                  fontSize: 13,
+                  fontSize: "var(--rtb-fs-label)",
                   color: accent,
                   letterSpacing: "0.12em",
                   fontWeight: 600,
@@ -1192,8 +1192,8 @@ export default function Terminal() {
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 16,
-                      padding: "0 20px",
+                      gap: 12,
+                      padding: "0 16px",
                       borderRadius: 8,
                       cursor: "pointer",
                       border: "1px solid",
@@ -1202,13 +1202,13 @@ export default function Terminal() {
                   >
                     <motion.span
                       animate={{ color: done ? accent : "#334155" }}
-                      style={{ fontSize: 22, flexShrink: 0 }}
+                      style={{ fontSize: "var(--rtb-fs-checkbox)", flexShrink: 0 }}
                     >
                       {done ? "▣" : "▢"}
                     </motion.span>
                     <span
                       style={{
-                        fontSize: 18,
+                        fontSize: "var(--rtb-fs-task)",
                         lineHeight: 1.5,
                         color: done ? accent : "#ffffff",
                         textDecoration: done ? "line-through" : "none",
@@ -1228,12 +1228,12 @@ export default function Terminal() {
                   animate={{ opacity: 1, height: "auto", marginTop: 10 }}
                   exit={{ opacity: 0, height: 0, marginTop: 0 }}
                   style={{
-                    padding: "12px 20px",
+                    padding: "10px 16px",
                     borderRadius: 8,
                     background: `${accent}18`,
                     border: `1px solid ${accent}44`,
                     color: accent,
-                    fontSize: 16,
+                    fontSize: "var(--rtb-fs-tab)",
                     fontWeight: 600,
                     textAlign: "center",
                     letterSpacing: "0.15em",
@@ -1259,13 +1259,13 @@ export default function Terminal() {
                 background: "#0d1220",
                 border: "1px solid #38bdf855",
                 borderRadius: 10,
-                padding: "1rem 1.5rem",
+                padding: "var(--rtb-pad-card)",
                 flexShrink: 0,
               }}
             >
               <div
                 style={{
-                  fontSize: 13,
+                  fontSize: "var(--rtb-fs-label)",
                   color: "#38bdf8",
                   letterSpacing: "0.2em",
                   textTransform: "uppercase",
@@ -1292,12 +1292,12 @@ export default function Terminal() {
                   maxLength={3}
                   style={{
                     flex: 1,
-                    padding: "12px 20px",
+                    padding: "10px 16px",
                     background: "#0a0f1c",
                     border: "1px solid #1e293b",
                     borderRadius: 8,
                     fontFamily: "monospace",
-                    fontSize: 28,
+                    fontSize: "var(--rtb-fs-input)",
                     letterSpacing: "0.4em",
                     textAlign: "center",
                     color: "#38bdf8",

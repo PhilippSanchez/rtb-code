@@ -3,6 +3,39 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* RTB responsive tokens */
+  --rtb-pad-outer:    1.25rem 1.5rem;
+  --rtb-pad-card:     1.25rem 1.5rem;
+  --rtb-pad-exit:     14px 24px;
+  --rtb-gap:          10px;
+  --rtb-fs-header:    14px;
+  --rtb-fs-timer:     72px;
+  --rtb-fs-timelabel: 12px;
+  --rtb-fs-digit:     36px;
+  --rtb-fs-tab:       16px;
+  --rtb-fs-task:      18px;
+  --rtb-fs-checkbox:  22px;
+  --rtb-fs-label:     13px;
+  --rtb-fs-input:     28px;
+}
+
+@media (max-width: 480px) {
+  :root {
+    --rtb-pad-outer:    0.75rem 1rem;
+    --rtb-pad-card:     0.75rem 1rem;
+    --rtb-pad-exit:     10px 16px;
+    --rtb-gap:          6px;
+    --rtb-fs-header:    11px;
+    --rtb-fs-timer:     46px;
+    --rtb-fs-timelabel: 10px;
+    --rtb-fs-digit:     26px;
+    --rtb-fs-tab:       12px;
+    --rtb-fs-task:      14px;
+    --rtb-fs-checkbox:  17px;
+    --rtb-fs-label:     10px;
+    --rtb-fs-input:     22px;
+  }
 }
 
 @theme inline {
